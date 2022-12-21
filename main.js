@@ -1,8 +1,9 @@
 // Import HTTPS module for making requests
 const https = require('https');
+const { start } = require('repl');
 
 // Create map for storing activities
-var activities = new Map();
+var storedActivities = new Map();
 
 // Create set for storing unique activities as cache
 var cache = new Set();
@@ -14,19 +15,6 @@ const options = {
         'Content-Type': 'application/json',
         'Authorization' : 'Basic ' + authorizationKey
     }
-}
-
-// Template object for user session
-const sessionTemplate = {
-    'ended_at': '',
-    'started_at': '',
-    'activity_ids': [],
-    'duration_seconds': 0,
-}
-
-// Creates new activity object
-function createActivityObject(map, name) {
-    map.set(name, [])
 }
 
 // Sort all activities by first_seen_at
@@ -53,7 +41,6 @@ function getActivities() {
             });
         
             res.on('end', () => {
-                // let sessions = JSON.parse(data)['activities'];
                 resolve(JSON.parse(data));
             });
             
@@ -63,9 +50,45 @@ function getActivities() {
     })
 }
 
+// Create a new session object
+function createSessionObject(activity) {
+    let newSession = {
+        'ended_at': '',
+        'started_at': '',
+        'activity_ids': [],
+        'duration_seconds': 0, 
+    };
+    // Add started_at and ended_at to session object
+    newSession.started_at = activity.first_seen_at;
+    newSession.ended_at = activity.answered_at;
+    // Calculate duration of session
+    newSession.duration_seconds = (new Date(activity.answered_at) - new Date(activity.first_seen_at)) / 1000;
+    // Add activity id to session object
+    newSession.activity_ids.push(activity.id);
+    // return new session object
+    return newSession;
+}
+
 // Process all activities
 function processActivities(activities) {
-    return [];
+    for(const i of activities) {
+        // If activity is not in cache, add it to cache and create new activity object in map
+        if(!cache.has(i.user_id)) {
+            // Add activity to cache
+            cache.add(i.user_id);
+            // Create new session object
+            storedActivities.set(i.user_id, [createSessionObject(i)]);
+        }
+        // If activity is in cache, check if it is in the same session
+        else {
+
+        }
+    }
+    let processedActivities = {};
+    for(key of cache) {
+        processedActivities[key] = storedActivities.get(key);
+    }
+    return processedActivities;
 };
 
 async function main() {
@@ -75,6 +98,7 @@ async function main() {
     sortByFirstSeenAt(fetchedActivities.activities);
     // Create object where we will store all user sessions and send to endpoint
     var user_sessions = { "user_sessions": processActivities(fetchedActivities.activities) };
+    console.log(user_sessions.user_sessions['wthp9bag']);
 }
 
 main();
