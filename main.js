@@ -72,9 +72,9 @@ async function main() {
     // Get all activities from API
     var fetchedActivities = await getActivities();
     // Sort activities by first_seen_at
-    sortByFirstSeenAt(fetchedActivities);
+    sortByFirstSeenAt(fetchedActivities.activities);
     // Create object where we will store all user sessions and send to endpoint
-    var user_sessions = { "user_sessions": processActivities(fetchedActivities) };
+    var user_sessions = { "user_sessions": processActivities(fetchedActivities.activities) };
 }
 
 main();
