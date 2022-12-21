@@ -1,6 +1,7 @@
-// Import HTTPS module for making requests
+// Import libraries for making requests
 const https = require('https');
-const { start } = require('repl');
+
+
 
 // Create map for storing activities
 var storedActivities = new Map();
@@ -8,9 +9,16 @@ var storedActivities = new Map();
 // Create set for storing unique activities as cache
 var cache = new Set();
 
-// Create objecct where we will have request options
+// Create object where we will have request options
 const authorizationKey = 'MTUwOmNHRjFpRHQ0VjE5OGNXbjFyNjZDSjVvaGRoTE5pZE9lS1JGUUcxMWw1YTA9';
-const options = {
+const getOptions = {
+    'headers': {
+        'Content-Type': 'application/json',
+        'Authorization' : 'Basic ' + authorizationKey
+    }
+}
+const postOptions = {
+    'method': 'POST',
     'headers': {
         'Content-Type': 'application/json',
         'Authorization' : 'Basic ' + authorizationKey
@@ -30,10 +38,30 @@ function sortByFirstSeenAt(activities) {
     });
 }
 
+function postActivities(activitiesJSON) {
+    return new Promise(resolve => {
+        const req = https.request("https://api.slangapp.com/challenges/v1/activities/sessions", postOptions, (res) => {
+            console.log('statusCode:', res.statusCode);
+            console.log('headers:', res.headers);
+
+            res.on('data', (d) => {
+                console.log(d);
+              });
+        });
+
+        req.on('error', (e) => {
+            resolve(e);
+        });
+
+        req.write(JSON.stringify(activitiesJSON));
+        req.end();
+    })
+}
+
 // Get all activities from API
 function getActivities() {
     return new Promise(resolve => {
-        https.get('https://api.slangapp.com/challenges/v1/activities', options, (res) => {
+        https.get('https://api.slangapp.com/challenges/v1/activities', getOptions, (res) => {
             let data = '';
         
             res.on('data', (chunk) => {
@@ -43,7 +71,6 @@ function getActivities() {
             res.on('end', () => {
                 resolve(JSON.parse(data));
             });
-            
         }).on("error", (err) => {
             console.log("Error: " + err.message);
         });
@@ -110,7 +137,8 @@ async function main() {
     sortByFirstSeenAt(fetchedActivities.activities);
     // Create object where we will store all user sessions and send to endpoint
     var user_sessions = { "user_sessions": processActivities(fetchedActivities.activities) };
-    console.log(user_sessions.user_sessions['wthp9bag']);
+    // Send user sessions to endpoint
+    console.log(await postActivities(user_sessions));
 }
 
 main();
