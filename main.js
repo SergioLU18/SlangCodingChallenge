@@ -81,7 +81,19 @@ function processActivities(activities) {
         }
         // If activity is in cache, check if it is in the same session
         else {
-
+            // Get last session object from stored activities
+            let lastSession = storedActivities.get(i.user_id)[storedActivities.get(i.user_id).length - 1];
+            // Check if activity is in the same session
+            if((new Date(i.first_seen_at) - new Date(lastSession.ended_at)) / 1000 < 300) {
+                // Add activity to session
+                lastSession.duration_seconds += (new Date(i.answered_at) - new Date(lastSession.ended_at)) / 1000;
+                lastSession.ended_at = i.answered_at;
+                lastSession.activity_ids.push(i.id);
+            }
+            // If activity is not in the same session, create new session object
+            else {
+                storedActivities.get(i.user_id).push(createSessionObject(i));
+            }
         }
     }
     let processedActivities = {};
